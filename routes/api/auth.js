@@ -27,7 +27,7 @@ router.post("/logout", authenticate, ctrlWrapper(ctrl.logout));
 router.patch(
   "/users",
   authenticate,
-  validateBody(schemas.updateSubscriptionSchems),
+  validateBody(schemas.updateSubscriptionSchema),
   ctrlWrapper(ctrl.updateSubscription)
 );
 
