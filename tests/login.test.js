@@ -42,6 +42,7 @@ describe("Login Controller", () => {
     const { statusCode, body } = await request(app)
       .post("/api/auth/register")
       .send(registerData);
+    console.log("Registration response:", body);
 
     expect(statusCode).toBe(201);
     expect(body.user.name).toBe(registerData.name);
@@ -52,18 +53,23 @@ describe("Login Controller", () => {
   });
 
   test("should login user and return a token", async () => {
-    // Creating user  testing
+    // Creating user for  testing
+    console.log("Creating user...");
     const user = await User.create({
-      name: "test",
-      email: "test@gmail.com",
+      name: "test2",
+      email: "test2@gmail.com",
       password: "123456",
       subscription: "starter",
       avatarURL: "test_avatar_url",
     });
+    console.log("User created:", user);
 
-    const result = await request(app)
-      .post("/api/auth/login")
-      .send({ email: "test@gmail.com", password: "123456" });
+    const loginData = {
+      email: "test2@gmail.com",
+      password: "123456",
+    };
+
+    const result = await request(app).post("/api/auth/login").send(loginData);
 
     //     // Checkin expecting results
 
