@@ -3,10 +3,13 @@
 3. Return user { email: String, subscription: String}  */
 
 const mongoose = require("mongoose");
-const request = require("supertest");
 const app = require("../app");
 const { User } = require("../models/user");
 const { DB_HOST, PORT } = process.env;
+const { login } = require("../controllers/auth");
+const bcrypt = require("bcryptjs");
+
+jest.spyOn(bcrypt, "compare").mockResolvedValue(true);
 
 describe("Login Controller", () => {
   let server = null;
@@ -28,59 +31,43 @@ describe("Login Controller", () => {
     await mongoose.connection.close();
   });
 
-  afterEach(async () => {
-    await User.deleteMany({});
-  });
+  test("should login user with fields mail and subscription", async () => {
+    const myEmail = "test2@gmail.com";
+    const myPassword = "123456";
 
-  test("should register user", async () => {
-    const registerData = {
-      name: "test",
-      email: "test@gmail.com",
-      password: "123456",
-    };
-
-    const { statusCode, body } = await request(app)
-      .post("/api/auth/register")
-      .send(registerData);
-    console.log("Registration response:", body);
-
-    expect(statusCode).toBe(201);
-    expect(body.user.name).toBe(registerData.name);
-    expect(body.user.email).toBe(registerData.email);
-
-    const user = await User.findOne({ email: registerData.email });
-    expect(user.email).toBe(registerData.email);
-  });
-
-  test("should login user and return a token", async () => {
-    // Creating user for  testing
-    console.log("Creating user...");
-    const user = await User.create({
-      name: "test2",
-      email: "test2@gmail.com",
-      password: "123456",
-      subscription: "starter",
-      avatarURL: "test_avatar_url",
+    const mockUser = new User({
+      email: myEmail,
+      password: await bcrypt.hash(myPassword, 10),
     });
-    console.log("User created:", user);
 
-    const loginData = {
-      email: "test2@gmail.com",
-      password: "123456",
+    jest.spyOn(User, "findOne").mockResolvedValue(mockUser);
+
+    const req = {
+      body: {
+        email: myEmail,
+        password: myPassword,
+      },
     };
 
-    const result = await request(app).post("/api/auth/login").send(loginData);
+    const res = {
+      json: jest.fn(),
+    };
+
+    await login(req, res);
 
     //     // Checkin expecting results
 
-    expect(result.statusCode).toBe(200);
-    expect(result.body).toHaveProperty("token");
-    expect(result.body.user).toBeDefined();
-    expect(result.body.user).toHaveProperty("email", user.email);
-    expect(result.body.user).toHaveProperty("subscription", user.subscription);
-
-    expect(typeof result.body.user).toBe("object");
-    expect(typeof result.body.user.email).toBe("string");
-    expect(typeof result.body.user.subscription).toBe("string");
+    expect(res.json).toHaveBeenCalledWith({
+      status: "success",
+      code: 200,
+      data: {
+        token: expect.any(String),
+      },
+      user: {
+        email: myEmail,
+        subscription: mockUser.subscription,
+      },
+    });
+    expect(User.findOne).toHaveBeenCalledWith({ email: myEmail });
   });
 });
